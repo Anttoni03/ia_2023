@@ -14,7 +14,7 @@ from practica1.entorn import Accio, SENSOR, TipusCasella
 """
 Profunditat = 1
 A* = 2
-Minimax = 3
+Minimax = 3 (TWO_PLAYERS = True)
 """
 TIPUS_CERCA = 3
 TWO_PLAYERS = True
@@ -134,10 +134,10 @@ class Agent(joc.Agent):
 
         return None
 
-    def cerca_min_i_max(self, estat, pas: int = 0, profunditat: int = 4):
+    def cerca_min_i_max(self, estat, pas: int = 0, profunditat: int = 3):
 
         if pas >= profunditat - 1:  # no hauria d'arribar aquí
-            return
+            return None
 
         is_max = pas % 2 == 0
         if is_max:
@@ -153,7 +153,7 @@ class Agent(joc.Agent):
         #print(f"{COL_DEBUG}El estado en paso {pas} es{COL_DEF}\n{str(estat)}")
 
         if pas >= profunditat - 2:
-            print(f"{COL_DEBUG}Como ha llegado al penúltimo nivel, genera los {len(successors)} estados:{COL_DEF}")
+            pass#print(f"{COL_DEBUG}Como ha llegado al penúltimo nivel, genera los {len(successors)} estados:{COL_DEF}")
 
         for succ in successors:
             if pas >= profunditat - 2:
@@ -172,7 +172,7 @@ class Agent(joc.Agent):
                 if succ.valor > estat.valor:
                     estat_fill = succ
                 estat.valor = max(estat.valor, succ.valor)
-                estat.beta = max(succ.beta, succ.valor)
+                estat.alpha = max(succ.alpha, succ.valor)
 
             if estat.alpha >= estat.beta:
                 #print(f"{COL_DEBUG}PODA{COL_DEF}")
@@ -180,4 +180,5 @@ class Agent(joc.Agent):
 
         if pas == 0:
             pass#print(f"{COL_DEBUG}El estado al que va a ir tiene coste {estat_fill.cost_total}, és\n{COL_DEF}{str(estat_fill)}")
+
         return estat_fill.accions_previes
