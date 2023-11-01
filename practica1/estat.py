@@ -6,7 +6,7 @@ from practica1 import agent
 
 class Estat:
 
-    def __init__(self, tablero, pare=None, accions_previes=None, alpha=-float('inf'), beta=float('inf')):
+    def __init__(self, tablero, pare=None, accions_previes=None, alpha=float('-inf'), beta=float('inf')):
         self.tauler = tablero
         self.pare = pare
 
@@ -51,36 +51,79 @@ class Estat:
         max_seguidas_contrari = 0
         tipus_contrari = TipusCasella.CARA if tipus is TipusCasella.CREU else TipusCasella.CREU
         for i in range(len(self.tauler)):
+
             max_en_linea, max_seguidas = devolver_máximos((max_en_linea, max_seguidas),
                                                           self.contar_recto(0, i, tipus, False))
             max_en_linea, max_seguidas = devolver_máximos((max_en_linea, max_seguidas),
-                                                          self.contar_recto(i, 1, tipus, True))
-            max_en_linea, max_seguidas = devolver_máximos((max_en_linea, max_seguidas),
-                                                          self.contar_diagonal(0, i, tipus))
-            max_en_linea, max_seguidas = devolver_máximos((max_en_linea, max_seguidas),
-                                                          self.contar_diagonal(i, 0, tipus))
+                                                          self.contar_recto(i, 0, tipus, True))
+
+
+            if i < len(self.tauler) - 3:
+                # print(f"A1 {i}")
+                max_en_linea, max_seguidas = devolver_máximos((max_en_linea, max_seguidas),
+                                                              self.contar_diagonal(0, i, tipus, True))
+                # print(f"A2 {i}")
+                max_en_linea, max_seguidas = devolver_máximos((max_en_linea, max_seguidas),
+                                                              self.contar_diagonal(i, 0, tipus, True))
+                # print(f"A3 {i}")
+                max_en_linea, max_seguidas = devolver_máximos((max_en_linea, max_seguidas),
+                                                              self.contar_diagonal(i, len(self.tauler)-1, tipus, False))
+
+            if i > 2:
+                # print(f"A4 {i}")
+                max_en_linea, max_seguidas = devolver_máximos((max_en_linea, max_seguidas),
+                                                              self.contar_diagonal(0, i, tipus, False))
+
 
             max_en_linea_contrari, max_seguidas_contrari = devolver_máximos(
                 (max_en_linea_contrari, max_seguidas_contrari),
                 self.contar_recto(0, i, tipus_contrari, False))
             max_en_linea_contrari, max_seguidas_contrari = devolver_máximos(
                 (max_en_linea_contrari, max_seguidas_contrari),
-                self.contar_recto(i, 1, tipus_contrari, True))
-            max_en_linea_contrari, max_seguidas_contrari = devolver_máximos(
-                (max_en_linea_contrari, max_seguidas_contrari),
-                self.contar_diagonal(0, i, tipus_contrari))
-            max_en_linea_contrari, max_seguidas_contrari = devolver_máximos(
-                (max_en_linea_contrari, max_seguidas_contrari),
-                self.contar_diagonal(i, 0, tipus_contrari))
+                self.contar_recto(i, 0, tipus_contrari, True))
+
+            if i < len(self.tauler) - 3:
+                # print(f"B1 {i}")
+                max_en_linea_contrari, max_seguidas_contrari = devolver_máximos(
+                    (max_en_linea_contrari, max_seguidas_contrari),
+                    self.contar_diagonal(0, i, tipus_contrari, True))
+                # print(f"B2 {i}")
+                max_en_linea_contrari, max_seguidas_contrari = devolver_máximos(
+                    (max_en_linea_contrari, max_seguidas_contrari),
+                    self.contar_diagonal(i, 0, tipus_contrari, True))
+                # print(f"B3 {i}")
+                max_en_linea_contrari, max_seguidas_contrari = devolver_máximos(
+                    (max_en_linea_contrari, max_seguidas_contrari),
+                    self.contar_diagonal(i, len(self.tauler)-1, tipus_contrari, False))
+
+            if i > 2:
+                # print(f"B4 {i}")
+                max_en_linea_contrari, max_seguidas_contrari = devolver_máximos(
+                    (max_en_linea_contrari, max_seguidas_contrari),
+                    self.contar_diagonal(0, i, tipus_contrari, False))
+
+        # print(f"{str(self)}\n{agent.COL_DEBUG}té max en linea: {agent.COL_DEF}{max_en_linea}{agent.COL_DEBUG} i seguides: {agent.COL_DEF}{max_seguidas}{agent.COL_DEBUG}\n"
+              # f"i max en linea contrari: {agent.COL_DEF}{max_en_linea_contrari}{agent.COL_DEBUG} i seguides contrari: {agent.COL_DEF}{max_seguidas_contrari}")
 
         res = max_en_linea - max_en_linea_contrari
         res += (max_seguidas - max_seguidas_contrari) * 5
-        if max_seguidas == 4:
+        if max_seguidas == 3:
             res += 10
+        if max_seguidas >= 4:
+            res += 20
+
+        if max_seguidas_contrari == 2:
+            res -= 10
+        if max_seguidas_contrari == 3:
+            res -= 20
+        if max_seguidas_contrari >= 4:
+            res -= 30
 
         self.heuristica = res
+        # print(f"{agent.COL_DEBUG}cost: {agent.COL_DEF}{self.cost_total}{agent.COL_DEBUG} per jugador {agent.COL_DEF}{tipus}\n")
 
-    def set_valor(self):
+    def set_valor(self, tipus):
+        self.calcular_heuristica(tipus)
         self.valor = self.cost_total
 
     @property
@@ -100,8 +143,8 @@ class Estat:
                 nou_estat.tauler[x][y] = tipus
                 nou_estat.accions_previes.append(accio)
 
+                nou_estat.pes -= 1
                 nou_estat.calcular_heuristica(tipus)
-                nou_estat.pes -= 2
 
                 estats_generats.append(nou_estat)
 
@@ -202,8 +245,9 @@ class Estat:
         contador_max = 0
         contador_nou = 0
         seguit = False
+
         for i in range(len(self.tauler)):
-            casilla = self.tauler[x][i] if horizontal else self.tauler[i][y]
+            casilla = self.tauler[i][x] if horizontal else self.tauler[y][i]
             if casilla is tipus:
                 contador += 1
                 seguit = True
@@ -213,6 +257,10 @@ class Estat:
                     contador_max = max(contador_max, contador_nou)
                     contador_nou = 0
                     seguit = False
+
+        if seguit:
+            contador_max = max(contador_max, contador_nou)
+
         return (contador, contador_max)
 
     def contar_diagonal(self, x: int, y: int, tipus: TipusCasella, derecha: bool = True) -> (int, int):
@@ -222,8 +270,14 @@ class Estat:
         seguit = False
         x1 = x
         y1 = y
-        while x1 < len(self.tauler) and y1 < len(self.tauler):
-            if self.tauler[x1][y1] is tipus:
+
+        while x1 < len(self.tauler) and y1 < len(self.tauler) and y1 >= 0:
+
+            casilla = self.tauler[y1][x1]
+
+            # print(f"{' '*(x1+y1)}{'X' if casilla is TipusCasella.CREU else 'C' if casilla is TipusCasella.CARA else '-'}")
+
+            if casilla is tipus:
                 contador += 1
                 seguit = True
                 contador_nou += 1
@@ -234,6 +288,10 @@ class Estat:
                     seguit = False
             x1 += 1
             y1 += 1 if derecha else -1
+
+        # print()
+        if seguit:
+            contador_max = max(contador_max, contador_nou)
 
         return (contador, contador_max)
 

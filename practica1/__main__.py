@@ -2,9 +2,9 @@ from practica1 import agent, joc
 
 
 def main():
-    player1 = agent.Agent("CIRCULO")
-    player2 = agent.Agent("CRUZ")
-    if agent.TWO_PLAYERS:
+    player1 = agent.Agent("A")
+    player2 = agent.Agent("B")
+    if agent.TIPUS_CERCA == 3:
         quatre = joc.Taulell([player1, player2])
     else:
         quatre = joc.Taulell([player1])

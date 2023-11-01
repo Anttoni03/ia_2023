@@ -5,6 +5,8 @@ ClauPercepcio:
     PARETS = 2
 """
 import queue
+import sys
+import time
 
 from ia_2022 import entorn
 from practica1 import joc
@@ -16,8 +18,7 @@ Profunditat = 1
 A* = 2
 Minimax = 3 (TWO_PLAYERS = True)
 """
-TIPUS_CERCA = 3
-TWO_PLAYERS = True
+TIPUS_CERCA = 1
 DEBUG = False
 
 COL_DEF = "\033[0m"
@@ -26,6 +27,12 @@ COL_DEBUG = "\033[33m"
 COL_BLUE = "\033[34m"
 COL_RED = "\033[31m"
 
+tiempo_inicial = 0
+tiempo_final = 0
+
+tiempo_total = 0
+estados_totales = 1
+kb_totales = 0
 
 class Agent(joc.Agent):
     def __init__(self, nom):
@@ -43,15 +50,18 @@ class Agent(joc.Agent):
         if self.__accions is None and DEBUG:
             print(f"{COL_DEBUG}La mida és {percepcio[SENSOR.MIDA]}{COL_DEF}")
 
-        if TWO_PLAYERS:
+        if TIPUS_CERCA == 3:
             taulell = percepcio[SENSOR.TAULELL]
-            self.__accions = self.elegir_cerca(taulell, TIPUS_CERCA)
+            if not Estat(taulell).es_meta():
+                self.__accions = self.elegir_cerca(taulell, TIPUS_CERCA)
+            else:
+                self.__accions = []
         else:
             if self.__accions is None:
                 taulell = percepcio[SENSOR.TAULELL]
                 self.__accions = self.elegir_cerca(taulell, TIPUS_CERCA)
 
-        if not TWO_PLAYERS:
+        if TIPUS_CERCA == 1 or TIPUS_CERCA == 2:
             self.__i += 1
             if self.__i < len(self.__accions):
                 if DEBUG:
@@ -64,53 +74,72 @@ class Agent(joc.Agent):
                     print(f"{COL_ACT}PARADO{COL_DEF}")
                 return Accio.ESPERAR, None
         else:
-            if self.__accions is not None:
+            if len(self.__accions) != 0:
                 if DEBUG:
-                    print(
-                        f"{COL_DEBUG}el estado previo es{COL_DEF}\n{str(Estat(percepcio[SENSOR.TAULELL]))}\n{COL_DEBUG} le toca a {COL_BLUE if self.jugador is TipusCasella.CARA else COL_RED}{self.jugador}{COL_DEF}")
+                    print(f"{COL_DEBUG}estat previ és{COL_DEF}\n{str(Estat(percepcio[SENSOR.TAULELL]))}\n"
+                          f"{COL_DEBUG}li toca a {COL_BLUE if self.jugador is TipusCasella.CARA else COL_RED}"
+                          f"{self.jugador}{COL_DEF}")
                 if not isinstance(self.__accions, list):
                     self.__accions = [self.__accions]
+                if DEBUG:
+                    print(f"{COL_ACT}Y la accion que hace es {self.__accions[0]}{COL_DEF}")
 
-                if len(self.__accions) > 0:
-                    if DEBUG:
-                        print(f"{COL_ACT}Y la accion que hace es {self.__accions[0]}{COL_DEF}")
-                    return Accio.POSAR, self.__accions[0]
-                else:
-                    return Accio.ESPERAR, None
+                return Accio.POSAR, self.__accions[0]
             else:
                 if DEBUG:
                     print(f"{COL_ACT}PARADO{COL_DEF}")
                 return Accio.ESPERAR, None
 
     def elegir_cerca(self, taulell, opcio):
+        global tiempo_total, kb_totales
+
+        if kb_totales == 0:
+            kb_totales = sys.getsizeof(Estat(taulell))
+        tiempo_inicial = time.time()
+        res = None
         if opcio == 1:
-            return self.cerca_profunditat(taulell)
+            res = self.cerca_profunditat(taulell)
+            tiempo_final = time.time()
+            print(f"{COL_DEBUG}CERCA PROFUNDITAT{COL_DEF}")
         elif opcio == 2:
-            return self.cerca_a_estrella(taulell)
+            res = self.cerca_a_estrella(taulell)
+            tiempo_final = time.time()
+            print(f"{COL_DEBUG}CERCA A*{COL_DEF}")
         elif opcio == 3:
-            return self.cerca_min_i_max(Estat(taulell), 0, 3)
+            profunditat = 3
+            res = self.cerca_min_i_max(Estat(taulell), 0, profunditat)
+            tiempo_final = time.time()
+            print(f"{COL_DEBUG}CERCA MINIMAX(PROFUNDITAT {profunditat}){COL_DEF}")
+
+        tiempo_total += (tiempo_final - tiempo_inicial)
+        print(f"{COL_DEBUG}Temps de cerca: {(tiempo_total) * 1000}ms{COL_DEF}")
+        print(f"{COL_DEBUG}Estats generats: {estados_totales} = {kb_totales}B{COL_DEF}\n")
+        return res
 
     def cerca_profunditat(self, taulell):
+        global estados_totales, kb_totales
+
         oberts = [Estat(taulell)]
         tancats = []
 
         while len(oberts) != 0:
             estat = oberts.pop()
             if estat.es_meta():
-                if DEBUG:
-                    print(f"{COL_DEBUG}Cantidad de estados evaluados PROFUNDIDAD: {len(oberts)}\nacciones: {estat.accions_previes}\ny encontrado{COL_DEF}\n{str(estat)}")
                 return estat.accions_previes
             else:
                 successors = estat.genera_fill(self.jugador)
                 tancats.append(estat)
 
                 for successor in successors:
+                    estados_totales += 1
+                    kb_totales += sys.getsizeof(successor)
                     if successor not in tancats:
                         oberts.append(successor)
 
         return None
 
     def cerca_a_estrella(self, taulell):
+        global estados_totales, kb_totales
 
         oberts = queue.PriorityQueue()
         estat_inicial = Estat(taulell)
@@ -121,20 +150,21 @@ class Agent(joc.Agent):
         while not oberts.empty():
             prioritat, estat = oberts.get()
             if estat.es_meta():
-                if DEBUG:
-                    print(f"{COL_DEBUG}Cantidad de estados evaluados A*: {oberts.qsize()}\nacciones: {estat.accions_previes}\ny encontrado{COL_DEF}\n{str(estat)}")
                 return estat.accions_previes
             else:
                 successors = estat.genera_fill(self.jugador)
                 tancats.append(estat)
 
                 for successor in successors:
+                    estados_totales += 1
+                    kb_totales += sys.getsizeof(successor)
                     if successor not in tancats:
                         oberts.put((-successor.cost_total, successor))
 
         return None
 
     def cerca_min_i_max(self, estat, pas: int = 0, profunditat: int = 3):
+        global estados_totales, kb_totales
 
         if pas >= profunditat - 1:  # no hauria d'arribar aquí
             return None
@@ -146,39 +176,38 @@ class Agent(joc.Agent):
             jugador = TipusCasella.CARA if self.jugador is TipusCasella.CREU else TipusCasella.CREU
 
         successors = estat.genera_fill(jugador)
+        if len(successors) == 0:
+            return None
         estat.heretar_a_b()
-        estat.valor = -float('inf') if is_max else float('inf')
+        estat.valor = float('-inf') if is_max else float('inf')
         estat_fill = successors[0]
 
-        #print(f"{COL_DEBUG}El estado en paso {pas} es{COL_DEF}\n{str(estat)}")
-
-        if pas >= profunditat - 2:
-            pass#print(f"{COL_DEBUG}Como ha llegado al penúltimo nivel, genera los {len(successors)} estados:{COL_DEF}")
+        if pas >= profunditat - 2 and DEBUG:
+            print(f"{COL_DEBUG}Como ha llegado al penúltimo nivel, genera los {len(successors)} estados{COL_DEF}")
 
         for succ in successors:
+            estados_totales += 1
+            kb_totales += sys.getsizeof(succ)
             if pas >= profunditat - 2:
-                succ.set_valor()
-                #print(f"{COL_DEBUG}Con valor {succ.cost_total} el estado es{COL_DEF}\n{str(succ)}")
+                succ.set_valor(self.jugador)
             else:
-                #print(f"Entra")
                 self.cerca_min_i_max(succ, pas + 1, profunditat)
 
             if not is_max:
                 if succ.valor < estat.valor:
+                    estat.valor = succ.valor
                     estat_fill = succ
-                estat.valor = min(estat.valor, succ.valor)
                 estat.beta = min(succ.beta, succ.valor)
             else:
                 if succ.valor > estat.valor:
+                    estat.valor = succ.valor
                     estat_fill = succ
-                estat.valor = max(estat.valor, succ.valor)
                 estat.alpha = max(succ.alpha, succ.valor)
 
             if estat.alpha >= estat.beta:
-                #print(f"{COL_DEBUG}PODA{COL_DEF}")
                 break
 
-        if pas == 0:
-            pass#print(f"{COL_DEBUG}El estado al que va a ir tiene coste {estat_fill.cost_total}, és\n{COL_DEF}{str(estat_fill)}")
+        if DEBUG:
+            print(f"{COL_DEBUG}-----------\nEl estado al que va a ir\n{COL_DEF}{str(estat)}{COL_DEBUG}\nes\n{COL_DEF}{str(estat_fill)}{COL_DEBUG}\ncon valor {COL_DEF}{estat_fill.cost_total}{COL_DEBUG}\n-----------{COL_DEF}")
 
         return estat_fill.accions_previes
