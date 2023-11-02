@@ -18,7 +18,7 @@ Profunditat = 1
 A* = 2
 Minimax = 3 (TWO_PLAYERS = True)
 """
-TIPUS_CERCA = 1
+TIPUS_CERCA = 3
 DEBUG = False
 
 COL_DEF = "\033[0m"
