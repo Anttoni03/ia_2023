@@ -6,8 +6,15 @@ from practica1 import agent
 
 class Estat:
 
-    def __init__(self, tablero, pare=None, accions_previes=None, alpha=float('-inf'), beta=float('inf')):
-        self.tauler = tablero
+    def __init__(self, taulell, pare=None, accions_previes=None, alpha=float('-inf'), beta=float('inf')):
+        """
+        Constructor de la classe Estat, que genera un estat del joc a
+        partir d'un taulell de TipusCasella.
+
+        Està preparat per tenir alpha i beta, enregistra el pare i les accions
+        prèvies per arribar al propi estat
+        """
+        self.tauler = taulell
         self.pare = pare
 
         self.pes = 0
@@ -134,22 +141,34 @@ class Estat:
         self.heuristica = res
 
     def set_valor(self, tipus):
+        """
+        Mètode per enregistrar el valor de la heurística al valor, per usar en minimax
+        """
         self.calcular_heuristica(tipus)
         self.valor = self.cost_total
 
     @property
     def cost_total(self) -> int:
+        """
+        Propietat per retornar el cost total
+        """
         return self.heuristica + self.pes
 
     def genera_fill(self, tipus: TipusCasella):
-
+        """
+        Mètode per generar els fills depenent de les accions possibles
+        i els estats als quals es pot arribar amb les accions.
+        """
         estats_generats = []
 
+        # genera un fill per a cada acció, o al manco ho intenta
         for accio in self.accions_possibles:
             nou_estat = copy.deepcopy(self)
             nou_estat.pare = self
 
             x, y = accio
+
+            # només continua endavant si la casella que es vol possar és buida
             if nou_estat.tauler[x][y] is TipusCasella.LLIURE:
                 nou_estat.tauler[x][y] = tipus
                 nou_estat.accions_previes.append(accio)
@@ -162,6 +181,10 @@ class Estat:
         return estats_generats
 
     def es_meta(self) -> bool:
+        """
+        Mètode que retorna si l'estat és considerat final, és a dir, amb
+        4 fitxes o més seguides
+        """
         for x in range(len(self.tauler)):
             for y in range(len(self.tauler[0])):
 
@@ -187,6 +210,10 @@ class Estat:
         return False
 
     def check_recto(self, x: int, y: int, tipus: TipusCasella, horizontal: bool = False) -> bool:
+        """
+        Mètode que comprova si hi han 4 fitxes 'tipus' seguides a alguna
+        linia del taulell en vertical o horitzontal
+        """
         contar = 0
         while True:
             if self.tauler[x][y] is not tipus:
@@ -203,6 +230,11 @@ class Estat:
                 y += 1
 
     def check_diagonal(self, x: int, y: int, tipus: TipusCasella, sentit: int = 0) -> bool:
+        """
+        Mètode que comprova si hi han 4 fitxes 'tipus' seguides a alguna
+        linia del taulell en vertical o horitzontal
+        """
+
         contar1 = 0
         contar2 = 0
         bool1 = sentit == 0 or sentit == 1
@@ -212,14 +244,6 @@ class Estat:
         x2 = x
         y2 = y
         while True:
-            """
-            print(f"x1,y1: {(x1,y1)}\tx2,y2:{(x2,y2)}\tsentit: {sentit}\tcontar1: {contar1}\tcontar2: {contar2}")
-            if sentit == 0 or sentit == 1:
-                print(self.str_position((x1, y1)))
-            if sentit == 0 or sentit == -1:
-                print(self.str_position((x2, y2)))
-            """
-
             if self.tauler[y1][x1] is not tipus:
                 bool1 = False
             if self.tauler[y2][x2] is not tipus:
@@ -252,6 +276,12 @@ class Estat:
         return False
 
     def contar_recto(self, x: int, y: int, tipus: TipusCasella, horizontal: bool = False) -> (int, int):
+        """
+        Mètode que compta les fitxes 'tipus' d'alguna linia i retorna una
+        tupla amb els valors de: (fitxes, màxim fitxes seguides)
+        Pot cercar en vertical i horitzontal
+        """
+
         contador = 0
         contador_max = 0
         contador_nou = 0
@@ -275,6 +305,11 @@ class Estat:
         return (contador, contador_max)
 
     def contar_diagonal(self, x: int, y: int, tipus: TipusCasella, derecha: bool = True) -> (int, int):
+        """
+        Mètode que compta les fitxes 'tipus' d'alguna linia i retorna una
+        tupla amb els valors de: (fitxes, màxim fitxes seguides)
+        Fa la cerca en diagonal cap a la dreta o cap a l'esquerra
+        """
         contador = 0
         contador_max = 0
         contador_nou = 0
@@ -307,6 +342,15 @@ class Estat:
         return (contador, contador_max)
 
     def __str__(self):
+        """
+        Mètode que sobreescriu l'impresió en text de l'estat.
+        El retorna amb l'estil de(exemple 5x5):
+        - - - - -
+        - - X X -
+        - - - C -
+        - X - C -
+        - - - C -
+        """
         txt = ""
         for x in range(len(self.tauler)):
             for y in range(len(self.tauler[0])):
@@ -321,6 +365,10 @@ class Estat:
         return txt
 
     def str_position(self, pos=(-1, -1)):
+        """
+        Mètode similar a __str__ però es pot indicar una posició (x,y),
+        on aquesta coordenada del taulell es remarcarà amb un color groc.
+        """
         txt = ""
         for x in range(len(self.tauler)):
             for y in range(len(self.tauler[0])):
@@ -338,6 +386,14 @@ class Estat:
 
 
 def devolver_máximos(valores1, valores2):
+    """
+    Funció auxiliar feta per retornar el major dels elements de
+    tuples en parells i deixar-ho com (x, y)
+
+    Si les tuples son (a, b), (c, d), compararà
+    a amb c i ho retornarà com x, i també compararà
+    b amb d i ho retornarà com y, fent (x, y)
+    """
     temp11, temp12 = valores1
     temp21, temp22 = valores2
     max1 = max(temp11, temp21)

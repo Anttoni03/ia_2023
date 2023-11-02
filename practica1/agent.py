@@ -18,7 +18,7 @@ from practica1.estat import Estat
 # 1 = cerca profunditat
 # 2 = cerca A*
 # 3 = cerca Minimax
-TIPUS_CERCA = 2
+TIPUS_CERCA = 3
 # booleà que indica si hi haurà o no missatges de Debug
 DEBUG = False
 
@@ -136,8 +136,8 @@ class Agent(joc.Agent):
 
         # es troba el temps final i les dades de rendiment de la cerca feta
         tiempo_total += (tiempo_final - tiempo_inicial)
-        print(f"{COL_DEBUG}Temps de cerca: {(tiempo_total) * 1000}ms{COL_DEF}")
-        print(f"{COL_DEBUG}Estats generats: {estados_totales} = {kb_totales}B{COL_DEF}\n")
+        print(f"{COL_DEBUG}Temps de cerca: {round((tiempo_total) * 1000, 2)} ms{COL_DEF}")
+        print(f"{COL_DEBUG}Estats generats: {estados_totales} = {kb_totales} B{COL_DEF}\n")
 
         # retorna la llista d'accions o acció a realitzar
         return res
