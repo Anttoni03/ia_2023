@@ -35,76 +35,88 @@ class Estat:
         return self.cost_total <= other.cost_total
 
     def heretar_a_b(self):
+        """
+        Mètode que hereta forsosament l'alpha i beta del node pare
+        """
         if self.pare is not None:
             self.alpha = self.pare.alpha
             self.beta = self.pare.beta
 
     @property
     def accions_possibles(self):
+        """
+        Propietat que retorna la llista de posicions possibles al taulell
+        """
         lista = list(range(len(self.tauler)))
         return [(x, y) for x in lista for y in lista]
 
     def calcular_heuristica(self, tipus: TipusCasella):
+        """
+        Mètode que asigna forsosament l'heurística a la variable self.heuristica.
+
+        Quan més alt el valor, millor per al jugador 'tipus'. El càlcul en general és:
+        heruistica = max_en_linea - max_en_linea_contrari
+        heruistica += (max_seguidas - max_seguidas_contrari) * 5
+
+        si max_seguides és 3 heurística suma 10 i si és 4 o més suma 20
+
+        si max_seguides_contrari és 2 resta 10, si és 3 resta 20, i si és 40 o més 30
+
+        D'aquesta manera l'heurística és alta amb estats amb el jugador 'tipus'
+        amb 4 fitxes connectades
+        """
+
         max_en_linea = 0
         max_seguidas = 0
         max_en_linea_contrari = 0
         max_seguidas_contrari = 0
         tipus_contrari = TipusCasella.CARA if tipus is TipusCasella.CREU else TipusCasella.CREU
+
         for i in range(len(self.tauler)):
 
+            # es comproven les fitxes de lines verticals
             max_en_linea, max_seguidas = devolver_máximos((max_en_linea, max_seguidas),
                                                           self.contar_recto(0, i, tipus, False))
+            # es comproven les fitxes de lines horitzontals
             max_en_linea, max_seguidas = devolver_máximos((max_en_linea, max_seguidas),
                                                           self.contar_recto(i, 0, tipus, True))
-
-
+            # es comproven les fitxes de lines diagonals
             if i < len(self.tauler) - 3:
-                # print(f"A1 {i}")
                 max_en_linea, max_seguidas = devolver_máximos((max_en_linea, max_seguidas),
                                                               self.contar_diagonal(0, i, tipus, True))
-                # print(f"A2 {i}")
                 max_en_linea, max_seguidas = devolver_máximos((max_en_linea, max_seguidas),
                                                               self.contar_diagonal(i, 0, tipus, True))
-                # print(f"A3 {i}")
                 max_en_linea, max_seguidas = devolver_máximos((max_en_linea, max_seguidas),
                                                               self.contar_diagonal(i, len(self.tauler)-1, tipus, False))
-
             if i > 2:
-                # print(f"A4 {i}")
                 max_en_linea, max_seguidas = devolver_máximos((max_en_linea, max_seguidas),
                                                               self.contar_diagonal(0, i, tipus, False))
 
-
+            # es comproven les fitxes contràries de lines verticals
             max_en_linea_contrari, max_seguidas_contrari = devolver_máximos(
                 (max_en_linea_contrari, max_seguidas_contrari),
                 self.contar_recto(0, i, tipus_contrari, False))
+            # es comproven les fitxes contràries de lines horitzontals
             max_en_linea_contrari, max_seguidas_contrari = devolver_máximos(
                 (max_en_linea_contrari, max_seguidas_contrari),
                 self.contar_recto(i, 0, tipus_contrari, True))
-
+            # es comproven les fitxes contràries de lines diagonals
             if i < len(self.tauler) - 3:
-                # print(f"B1 {i}")
                 max_en_linea_contrari, max_seguidas_contrari = devolver_máximos(
                     (max_en_linea_contrari, max_seguidas_contrari),
                     self.contar_diagonal(0, i, tipus_contrari, True))
-                # print(f"B2 {i}")
                 max_en_linea_contrari, max_seguidas_contrari = devolver_máximos(
                     (max_en_linea_contrari, max_seguidas_contrari),
                     self.contar_diagonal(i, 0, tipus_contrari, True))
-                # print(f"B3 {i}")
                 max_en_linea_contrari, max_seguidas_contrari = devolver_máximos(
                     (max_en_linea_contrari, max_seguidas_contrari),
                     self.contar_diagonal(i, len(self.tauler)-1, tipus_contrari, False))
-
             if i > 2:
-                # print(f"B4 {i}")
                 max_en_linea_contrari, max_seguidas_contrari = devolver_máximos(
                     (max_en_linea_contrari, max_seguidas_contrari),
                     self.contar_diagonal(0, i, tipus_contrari, False))
 
-        # print(f"{str(self)}\n{agent.COL_DEBUG}té max en linea: {agent.COL_DEF}{max_en_linea}{agent.COL_DEBUG} i seguides: {agent.COL_DEF}{max_seguidas}{agent.COL_DEBUG}\n"
-              # f"i max en linea contrari: {agent.COL_DEF}{max_en_linea_contrari}{agent.COL_DEBUG} i seguides contrari: {agent.COL_DEF}{max_seguidas_contrari}")
-
+        # càlculs finals de com marca l'heurística
         res = max_en_linea - max_en_linea_contrari
         res += (max_seguidas - max_seguidas_contrari) * 5
         if max_seguidas == 3:
@@ -120,7 +132,6 @@ class Estat:
             res -= 30
 
         self.heuristica = res
-        # print(f"{agent.COL_DEBUG}cost: {agent.COL_DEF}{self.cost_total}{agent.COL_DEBUG} per jugador {agent.COL_DEF}{tipus}\n")
 
     def set_valor(self, tipus):
         self.calcular_heuristica(tipus)
